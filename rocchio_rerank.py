@@ -54,15 +54,17 @@ def readQueryFile(query_filename):
 
 	return query_dictionary
 
-def readStringFreq(file_string,dictionary):
-	words = re.split(' |,|>|<|=|/|-|0|1|2|3|4|5|6|7|8|9|\\.|\n|:|;|"|\'|`|{{|}}|[|]|\)|\(',file_string)
+def readStringFreq(file_string,dictionary,factor=1):
+	words = re.split(' |~|,|>|<|=|/|-|0|1|2|3|4|5|6|7|8|9|\\.|\n|:|;|"|\'|`|{{|}}|[|]|\)|\(',file_string)
 
 	for term in words:
+		if term=='':
+			continue
 		term = term.lower()
 		if term not in dictionary:
-			dictionary[term] = 1
+			dictionary[term] = factor
 		else:
-			dictionary[term]+=1
+			dictionary[term]+=factor
 	return dictionary
 
 def readCollection(collection_dir,queryDocuments,LIMIT,gamma = 0.15):
@@ -77,18 +79,18 @@ def readCollection(collection_dir,queryDocuments,LIMIT,gamma = 0.15):
 	    for row in reader:
 
 	        title = row['title']
-	        readStringFreq(title,IDFS)
+	        readStringFreq(title,IDFS,4)
 
 	        coin = random.random()
-	        if (row['cord_uid'] in queryDocuments and coin>0.5):
+	        if (row['cord_uid'] in queryDocuments and coin>0.9):
 	        	continue
 
 	        abstract = row['abstract']
-	        readStringFreq(abstract,IDFS)
+	        readStringFreq(abstract,IDFS,2)
 
 	        authors = row['authors'].split('; ')
 	        for author in authors:
-	        	readStringFreq(author,IDFS)
+	        	readStringFreq(author,IDFS,2)
 
 	        if row['pmc_json_files']:
 	            for json_path in row['pmc_json_files'].split('; '):
@@ -106,17 +108,16 @@ def readCollection(collection_dir,queryDocuments,LIMIT,gamma = 0.15):
 	                    for paragraph_dict in full_text_dict['body_text']:
 	                        readStringFreq(paragraph_dict['text'],IDFS)
 	        limit -= 1
-	        #print(limit)
 	        if(limit<0):
 	        	break
 
 	    irrelevantDocs = {}
 	    for term in IDFS.keys():
 	    	irrelevantDocs[term] = (-1)*gamma*IDFS[term]/LIMIT
-
 	    totalN = 0
 	    for freq in IDFS.values():
 	    	totalN += freq
+
 	    for key in IDFS.keys():
 	    	IDFS[key] = math.log((1+(totalN/IDFS[key])),2)
 
@@ -135,14 +136,14 @@ def fillTFS(queryDocuments,collection_dir):
 	    			documentTFS[row['cord_uid']] = {}
 
 	    		title = row['title']
-	    		readStringFreq(title,documentTFS[row['cord_uid']])
+	    		readStringFreq(title,documentTFS[row['cord_uid']],4)
 
 	    		abstract = row['abstract']
-	    		readStringFreq(abstract,documentTFS[row['cord_uid']])
+	    		readStringFreq(abstract,documentTFS[row['cord_uid']],2)
 
 	    		authors = row['authors'].split('; ')
 	    		for author in authors:
-	    			readStringFreq(author,documentTFS[row['cord_uid']])
+	    			readStringFreq(author,documentTFS[row['cord_uid']],2)
 
 	    		if row['pmc_json_files']:
 	    		    for json_path in row['pmc_json_files'].split('; '):
@@ -177,7 +178,6 @@ def addDictionaries(dict1,dict2,factor1=1,factor2=1):
 
 def returnScore(TF_document_dictionary,query,otherQuery,alpha,IDFS,totalN):
 	score = 0
-
 	for term in query:
 		if term not in otherQuery:
 			otherQuery[term] = alpha
@@ -187,7 +187,7 @@ def returnScore(TF_document_dictionary,query,otherQuery,alpha,IDFS,totalN):
 	norm1 = 0
 	norm2 = 0
 	for term in otherQuery:
-		idf = math.log((1+(totalN)),2) if term not in IDFS.keys() else IDFS[term]
+		idf = math.log((1+math.sqrt(totalN)),2) if term not in IDFS.keys() else IDFS[term]
 		tf = TF_document_dictionary[term] if term in TF_document_dictionary.keys() else 0
 		norm1 += otherQuery[term]*otherQuery[term]
 		norm2 += tf*idf*tf*idf
@@ -201,7 +201,7 @@ def returnOtherVector(query_dictionary,top100_dictionary,documentTFS,irrelevantD
 	for queryNum in query_dictionary:
 		tempVector = {}
 		for document in top100_dictionary[queryNum]:
-			tempVector = addDictionaries(tempVector,documentTFS[document],1,beta*(1/100))
+			tempVector = addDictionaries(tempVector,documentTFS[document],1,beta*(1/len(top100_dictionary[queryNum])))
 		otherVector[queryNum] = addDictionaries(tempVector,irrelevantDocs)
 		#print(len(otherVector[queryNum].keys()))
 
@@ -219,19 +219,18 @@ def reorderQueries(query_dictionary,otherVector,alpha,top100_dictionary,document
 		thisOrderedDocs = sorted(thisOrderedDocs,key=itemgetter(0),reverse = True)
 		
 		for index,scoreId in enumerate(thisOrderedDocs):
-			answerLine = str(queryNum) + " Q0 " + scoreId[1] + " " + str(index) + " " +str(scoreId[0]) + " Sidharth\n"
+			answerLine = str(queryNum) + " Q0 " + scoreId[1] + " " + str(index+1) + " " +str(scoreId[0]) + " Sidharth\n"
 			file.write(answerLine)
 	file.close()
 
 if __name__=='__main__':
 
-	LIMIT = 1000
+	LIMIT = 10000
 
-	alpha = 1
-	beta = 0.5
+	alpha = 0.5
+	beta = 1
 	gamma = 0.15
 
-	num_arguments = len(sys.argv)
 	query_filename = sys.argv[1]
 	top100_filename = sys.argv[2]
 	collection_dir = sys.argv[3]
