@@ -104,7 +104,7 @@ if __name__=='__main__':
 	queryResults = returnRanking(output_filename)
 
 	DCGScore = returnRelRankingDCG(queryResults,queryDocRelevance)
-	print("The NDCG Score is : "+ str(DCGScore))
+	print("NDCG Score is : "+ str(DCGScore))
 
 	MAPScore = returnMAPScore(queryResults,queryDocRelevance)
-	print("The MAP Score is : "+ str(MAPScore))
+	print("MAP Score is : "+ str(MAPScore))

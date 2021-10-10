@@ -7,6 +7,24 @@ import json
 import math
 from operator import itemgetter
 import random
+from stemmar import PorterStemmer
+
+def stem_token(token,porter):
+	output = ''
+	word = ''
+
+	for char in token:
+		if char.isalpha():
+			word += char.lower()
+		else:
+			if word:
+				output += porter.stem(word,0,len(word)-1)
+				word = ''
+			output += char.lower()
+	if word:
+		output += porter.stem(word,0,len(word)-1)
+
+	return output
 
 def readTop100(top100_filename):
 	file = open(top100_filename,"r")
@@ -48,7 +66,7 @@ def readQueryFile(query_filename):
 		if '<' not in topic or '>' not in topic:
 			continue
 		xmlQuery = BeautifulSoup(topic,'xml')
-		field = xmlQuery.find_all('query',limit = 1)[0].get_text()
+		field = xmlQuery.find_all('question',limit = 1)[0].get_text()
 		query_dictionary[queryNum] = field
 		queryNum += 1
 
@@ -57,10 +75,12 @@ def readQueryFile(query_filename):
 def readStringFreq(file_string,dictionary,factor=1):
 	words = re.split(' |~|,|>|<|=|/|-|0|1|2|3|4|5|6|7|8|9|\\.|\n|:|;|"|\'|`|{{|}}|[|]|\)|\(',file_string)
 
+	porter = PorterStemmer()
+
 	for term in words:
 		if term=='':
 			continue
-		term = term.lower()
+		term = stem_token(term,porter)
 		if term not in dictionary:
 			dictionary[term] = factor
 		else:
@@ -178,7 +198,10 @@ def addDictionaries(dict1,dict2,factor1=1,factor2=1):
 
 def returnScore(TF_document_dictionary,query,otherQuery,alpha,IDFS,totalN):
 	score = 0
+	porter = PorterStemmer()
+
 	for term in query:
+		term = stem_token(term,porter)
 		if term not in otherQuery:
 			otherQuery[term] = alpha
 		else:
@@ -227,8 +250,8 @@ if __name__=='__main__':
 
 	LIMIT = 10000
 
-	alpha = 0.5
-	beta = 1
+	alpha = 1
+	beta = 0.25
 	gamma = 0.15
 
 	query_filename = sys.argv[1]
