@@ -66,7 +66,7 @@ def readQueryFile(query_filename):
 		if '<' not in topic or '>' not in topic:
 			continue
 		xmlQuery = BeautifulSoup(topic,'xml')
-		field = xmlQuery.find_all('question',limit = 1)[0].get_text()
+		field = xmlQuery.find_all('query',limit = 1)[0].get_text()
 		query_dictionary[queryNum] = field
 		queryNum += 1
 
@@ -250,7 +250,7 @@ if __name__=='__main__':
 
 	LIMIT = 10000
 
-	alpha = 1
+	alpha = 0.75
 	beta = 0.25
 	gamma = 0.15
 

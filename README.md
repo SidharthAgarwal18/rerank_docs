@@ -1,5 +1,5 @@
 # Rerank
-The goal is to develop “telescoping” model, which here is Rochhio's Method aimed at improving the precision of results using pseudo-relevance feedback. We will use data collection and queries from TREC COVID track. We have used TF-IDF values as term weight, with many other optimizations and details stated in `/Algorithmic_Details.pdf`. For more details about the problem statement see `/assignment2.pdf`.
+The goal is to develop “telescoping” model, which here is Rochhio's Method aimed at improving the precision of results using pseudo-relevance feedback. We will use data collection and queries from TREC COVID track. We have used TF-IDF values as term weight, with many other optimizations and details stated in `/Algorithmic_Details.pdf`. For more details about the problem statement see `/assignment2.pdf`. For the obeservations look into `report.pdf`
  
 
 ## Libraries Needed
